@@ -8,11 +8,11 @@ import (
 // UserService is an actual implementation of the todoapp.UserService interface
 // which works with in memory storage.
 
-type IDGenerator func(...interface{}) string
+type UniqueIDGenerator func(...interface{}) string
 type UserService struct {
-	mtx   sync.RWMutex
-	IDGen IDGenerator
-	Todos map[string]*todoapp.Todo
+	mtx               sync.RWMutex
+	UniqueIDGenerator func(...interface{}) string
+	Todos             map[string]*todoapp.Todo
 }
 
 func (usrv *UserService) Todo(ID string) (*todoapp.Todo, error) {
@@ -34,17 +34,8 @@ func (usrv *UserService) CreateTodo(t todoapp.Todo) (string, error) {
 	usrv.mtx.Lock()
 	defer usrv.mtx.Unlock()
 
-	newID := usrv.IDGen()
+	newUniqueID := usrv.UniqueIDGenerator()
 
-	for !usrv.isIDUnique(newID) {
-		newID = usrv.IDGen()
-	}
-
-	usrv.Todos[newID] = &t
-	return newID, nil
-}
-
-func (usrv *UserService) isIDUnique(ID string) bool {
-	_, isIDAlreadyAssociatedToSomeTodo := usrv.Todos[ID]
-	return !isIDAlreadyAssociatedToSomeTodo
+	usrv.Todos[newUniqueID] = &t
+	return newUniqueID, nil
 }
