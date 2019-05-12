@@ -9,7 +9,7 @@ type errTodoNotFound struct {
 }
 
 func (e *errTodoNotFound) Error() string {
-	return fmt.Sprintf("todo with id %s not found", e.ID)
+	return fmt.Sprintf("todo with id %q not found", e.ID)
 }
 
 func (e *errTodoNotFound) ErrTodoNotFound() (bool, string) {

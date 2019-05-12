@@ -15,8 +15,8 @@ func TestUserService(t *testing.T) {
 		const unexistingID = "1"
 
 		todoAssociatedToExistingID := &todoapp.Todo{
-			ID:          existingID,
 			Description: "something to do",
+			IsDone:      false,
 		}
 
 		userService := &inmem.UserService{
@@ -53,6 +53,34 @@ func TestUserService(t *testing.T) {
 
 	t.Run(`CreateTodo`, func(t *testing.T) {
 		t.Parallel()
+		const newID = "A"
+
+		IDGenerator := func(...interface{}) string {
+			return newID
+		}
+
+		todoToCreate := todoapp.Todo{
+			Description: "something to do",
+			IsDone:      false,
+		}
+
+		userService := &inmem.UserService{
+			Todos: map[string]*todoapp.Todo{},
+			IDGen: IDGenerator,
+		}
+
+		t.Run(`saves the Todo passed as paremeter and returns its ID`, func(t *testing.T) {
+			want := newID
+			got, err := userService.CreateTodo(todoToCreate)
+
+			if err != nil {
+				t.Fatalf(`CreateTodo(%v) failed because: %v`, todoToCreate, err)
+			}
+
+			if got != want {
+				t.Fatalf(`CreateTodo(%v) = %q | want %q`, todoToCreate, got, want)
+			}
+		})
 	})
 
 	t.Run(`DeleteTodo`, func(t *testing.T) {

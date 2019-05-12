@@ -2,7 +2,6 @@ package todoapp
 
 //Todo represents something that has to be done and has a binary state.
 type Todo struct {
-	ID          string
 	Description string
 	IsDone      bool
 }
@@ -11,7 +10,7 @@ type Todo struct {
 //a client to deal with todos
 type TodoService interface {
 	Todo(ID string) (Todo, error)
-	CreateTodo(t Todo) error
+	CreateTodo(t Todo) (string, error)
 	DeleteTodo(t Todo) error
 	UpdateTodo(t Todo) error
 }
