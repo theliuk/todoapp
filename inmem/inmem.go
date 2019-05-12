@@ -7,8 +7,6 @@ import (
 
 // UserService is an actual implementation of the todoapp.UserService interface
 // which works with in memory storage.
-
-type UniqueIDGenerator func(...interface{}) string
 type UserService struct {
 	mtx               sync.RWMutex
 	UniqueIDGenerator func(...interface{}) string
