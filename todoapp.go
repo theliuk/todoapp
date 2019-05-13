@@ -9,10 +9,10 @@ type Todo struct {
 //TodoService defines all the operations that are supported by a service which allows
 //a client to deal with todos
 type TodoService interface {
-	Todo(ID string) (Todo, error)
-	CreateTodo(t Todo) (string, error)
-	DeleteTodo(ID string) error
-	UpdateTodo(ID string, t Todo) error
+	Get(ID string) (Todo, error)
+	Create(t Todo) (string, error)
+	Delete(ID string) error
+	Update(ID string, t Todo, upsert bool) error
 }
 
 type ErrTodoNotFound interface {
