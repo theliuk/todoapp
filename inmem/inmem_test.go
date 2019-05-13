@@ -14,13 +14,13 @@ func TestUserService(t *testing.T) {
 		const existingID = "a"
 		const unexistingID = "1"
 
-		todoAssociatedToExistingID := &todoapp.Todo{
+		todoAssociatedToExistingID := todoapp.Todo{
 			Description: "something to do",
 			IsDone:      false,
 		}
 
 		userService := &inmem.UserService{
-			Todos: map[string]*todoapp.Todo{
+			Todos: map[string]todoapp.Todo{
 				existingID: todoAssociatedToExistingID,
 			},
 		}
@@ -33,16 +33,17 @@ func TestUserService(t *testing.T) {
 				t.Fatalf(`Todo(%q) failed because: %v`, existingID, err)
 			}
 
-			if !reflect.DeepEqual(*got, *want) {
-				t.Fatalf(`Todo(%q) = %v | want %v`, existingID, *got, *want)
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf(`Todo(%q) = %v | want %v`, existingID, got, want)
 			}
 		})
 
 		t.Run(`returns an ErrTodoNotFound if the ID is not found`, func(t *testing.T) {
+			want := todoapp.Todo{}
 			got, err := userService.Todo(unexistingID)
 
-			if got != nil {
-				t.Fatalf(`Todo(%q) = %v | want %v`, unexistingID, got, nil)
+			if got != want {
+				t.Fatalf(`Todo(%q) = %v | want %v`, unexistingID, got, want)
 			}
 
 			if ok, _ := todoapp.IsErrTodoNotFound(err); !ok {
@@ -65,7 +66,7 @@ func TestUserService(t *testing.T) {
 		}
 
 		userService := &inmem.UserService{
-			Todos:             map[string]*todoapp.Todo{},
+			Todos:             map[string]todoapp.Todo{},
 			UniqueIDGenerator: uniqueIDGenerator,
 		}
 
@@ -80,6 +81,8 @@ func TestUserService(t *testing.T) {
 			if got != want {
 				t.Fatalf(`CreateTodo(%v) = %q | want %q`, todoToCreate, got, want)
 			}
+
+			/* Shall I test the fact that now I can access to the Todo by its ID? */
 		})
 
 	})

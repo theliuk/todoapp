@@ -10,17 +10,17 @@ import (
 type UserService struct {
 	mtx               sync.RWMutex
 	UniqueIDGenerator func(...interface{}) string
-	Todos             map[string]*todoapp.Todo
+	Todos             map[string]todoapp.Todo
 }
 
-func (usrv *UserService) Todo(ID string) (*todoapp.Todo, error) {
+func (usrv *UserService) Todo(ID string) (todoapp.Todo, error) {
 	usrv.mtx.RLock()
 	defer usrv.mtx.RUnlock()
 
 	todo, ok := usrv.Todos[ID]
 
 	if !ok {
-		return nil, &errTodoNotFound{ID}
+		return todoapp.Todo{}, &errTodoNotFound{ID}
 	}
 
 	return todo, nil
@@ -34,6 +34,6 @@ func (usrv *UserService) CreateTodo(t todoapp.Todo) (string, error) {
 
 	newUniqueID := usrv.UniqueIDGenerator()
 
-	usrv.Todos[newUniqueID] = &t
+	usrv.Todos[newUniqueID] = t
 	return newUniqueID, nil
 }

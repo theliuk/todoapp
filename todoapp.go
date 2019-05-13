@@ -11,8 +11,8 @@ type Todo struct {
 type TodoService interface {
 	Todo(ID string) (Todo, error)
 	CreateTodo(t Todo) (string, error)
-	DeleteTodo(t Todo) error
-	UpdateTodo(t Todo) error
+	DeleteTodo(ID string) error
+	UpdateTodo(ID string, t Todo) error
 }
 
 type ErrTodoNotFound interface {
