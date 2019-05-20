@@ -1,13 +1,12 @@
-package inmem_test
+package inmem
 
 import (
 	"github.com/theliuk/todoapp"
-	"github.com/theliuk/todoapp/inmem"
 	"reflect"
 	"testing"
 )
 
-func TestUserService(t *testing.T) {
+func TestTodoService(t *testing.T) {
 	t.Run(`Get`, func(t *testing.T) {
 		t.Parallel()
 
@@ -19,15 +18,15 @@ func TestUserService(t *testing.T) {
 			IsDone:      false,
 		}
 
-		userService := &inmem.UserService{
-			Todos: map[string]todoapp.Todo{
+		todoService := &todoService{
+			todos: map[string]todoapp.Todo{
 				existingID: todoAssociatedToExistingID,
 			},
 		}
 
 		t.Run(`returns the Todo associated to the provided ID`, func(t *testing.T) {
 			want := todoAssociatedToExistingID
-			got, err := userService.Get(existingID)
+			got, err := todoService.Get(existingID)
 
 			if err != nil {
 				t.Fatalf(`Get(%q) failed because: %v`, existingID, err)
@@ -40,7 +39,7 @@ func TestUserService(t *testing.T) {
 
 		t.Run(`returns an ErrTodoNotFound if the ID is NOT found`, func(t *testing.T) {
 			want := todoapp.Todo{}
-			got, err := userService.Get(unexistingID)
+			got, err := todoService.Get(unexistingID)
 
 			if got != want {
 				t.Fatalf(`Get(%q) = %v | want %v`, unexistingID, got, want)
@@ -56,8 +55,9 @@ func TestUserService(t *testing.T) {
 		t.Parallel()
 		const newUniqueID = "A"
 
-		uniqueIDGenerator := func(...interface{}) string {
-			return newUniqueID
+		todoService := &todoService{
+			todos:  map[string]todoapp.Todo{},
+			uIDGen: &uniqueIDGeneratorMock{newUniqueID},
 		}
 
 		todoToCreate := todoapp.Todo{
@@ -65,14 +65,9 @@ func TestUserService(t *testing.T) {
 			IsDone:      false,
 		}
 
-		userService := &inmem.UserService{
-			Todos:             map[string]todoapp.Todo{},
-			UniqueIDGenerator: uniqueIDGenerator,
-		}
-
 		t.Run(`saves the Todo passed as parameter and returns its ID`, func(t *testing.T) {
 			want := newUniqueID
-			got, err := userService.Create(todoToCreate)
+			got, err := todoService.Create(todoToCreate)
 
 			if err != nil {
 				t.Fatalf(`Create(%v) failed because: %v`, todoToCreate, err)
@@ -82,53 +77,60 @@ func TestUserService(t *testing.T) {
 				t.Fatalf(`Create(%v) = %q | want %q`, todoToCreate, got, want)
 			}
 
-			if _, ok := userService.Todos[want]; !ok {
+			if _, isTodoPresent := todoService.todos[want]; !isTodoPresent {
 				t.Fatalf(`Create(%v) does NOT create a new Todo`, todoToCreate)
 			}
 		})
 	})
 
-	t.Run(`DeleteTodo`, func(t *testing.T) {
+	t.Run(`Delete`, func(t *testing.T) {
 		t.Parallel()
 
 		t.Run(`removes the Todo associated to the ID`, func(t *testing.T) {
-			const existingId = "A"
+			const existingID = "A"
 
-			userService := &inmem.UserService{
-				Todos: map[string]todoapp.Todo{
-					existingId: todoapp.Todo{},
+			todoService := &todoService{
+				todos: map[string]todoapp.Todo{
+					existingID: todoapp.Todo{},
 				},
 			}
 
-			err := userService.Delete(existingId)
+			err := todoService.Delete(existingID)
 
 			if err != nil {
-				t.Fatalf(`Delete(%q) fails because: %v`, existingId, err)
+				t.Fatalf(`Delete(%q) fails because: %v`, existingID, err)
 			}
 
-			if _, ok := userService.Todos[existingId]; ok {
-				t.Fatalf(`Delete(%q) does NOT remove Todo associated with ID %q`, existingId, existingId)
+			if _, isTodoStillPresent := todoService.todos[existingID]; isTodoStillPresent {
+				t.Fatalf(`Delete(%q) does NOT remove Todo associated with ID %q`, existingID, existingID)
 			}
 		})
 
 		t.Run(`returns an ErrTodoNotFound if the ID is not found`, func(t *testing.T) {
 			const nonExistingID = "B"
 
-			userService := &inmem.UserService{
-				Todos: map[string]todoapp.Todo{},
+			todoService := &todoService{
+				todos: map[string]todoapp.Todo{},
 			}
 
-			err := userService.Delete(nonExistingID)
+			err := todoService.Delete(nonExistingID)
 
 			if ok, _ := todoapp.IsErrTodoNotFound(err); !ok {
 				t.Fatalf(`Delete(%q) does NOT return an ErrTodoNotFound`, nonExistingID)
 			}
 		})
-
 	})
 
-	t.Run(`UpdateTodo`, func(t *testing.T) {
+	t.Run(`Update`, func(t *testing.T) {
 		t.Parallel()
 		//No TDD? Oops :)
 	})
+}
+
+type uniqueIDGeneratorMock struct {
+	FakeID string
+}
+
+func (uIDGenMock *uniqueIDGeneratorMock) GenerateUniqueID(...interface{}) string {
+	return uIDGenMock.FakeID
 }

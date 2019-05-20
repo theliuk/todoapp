@@ -2,24 +2,48 @@ package inmem
 
 import (
 	"github.com/theliuk/todoapp"
+	"strconv"
 	"sync"
 )
 
-// UserService is an actual implementation of the todoapp.UserService interface
-// which works with in memory storage.
-type UserService struct {
-	mtx               sync.RWMutex
-	UniqueIDGenerator func(...interface{}) string
-	Todos             map[string]todoapp.Todo
+type UniqueIDGenerator interface {
+	GenerateUniqueID(...interface{}) string
+}
+
+// IncrementalIDGenerator returns an incremental interger as string.
+// Must be used in a safe way.
+type IncrementalIDGenerator struct {
+	counter int
+}
+
+//GenerateUniqueID returns an incremental integer as a string at each call.
+func (incIDGen *IncrementalIDGenerator) GenerateUniqueID(...interface{}) (ID string) {
+	ID = strconv.Itoa(incIDGen.counter)
+	incIDGen.counter++
+	return
+}
+
+type todoService struct {
+	mtx    sync.RWMutex
+	todos  map[string]todoapp.Todo
+	uIDGen UniqueIDGenerator
+}
+
+//NewTodoService returns a new instance of an in-memory implementation of todoapp.TodoService
+func NewTodoService(udIDGen UniqueIDGenerator) todoapp.TodoService {
+	return &todoService{
+		todos:  make(map[string]todoapp.Todo),
+		uIDGen: udIDGen,
+	}
 }
 
 //Get takes an ID and returns the corresponding Todo, if any is associated to
 //the specific ID; an error is returned otherwise.
-func (usrv *UserService) Get(ID string) (todoapp.Todo, error) {
+func (usrv *todoService) Get(ID string) (todoapp.Todo, error) {
 	usrv.mtx.RLock()
 	defer usrv.mtx.RUnlock()
 
-	todo, ok := usrv.Todos[ID]
+	todo, ok := usrv.todos[ID]
 
 	if !ok {
 		return todoapp.Todo{}, &errTodoNotFound{ID}
@@ -30,44 +54,44 @@ func (usrv *UserService) Get(ID string) (todoapp.Todo, error) {
 
 // Create takes a Todo with all the information available, except for the ID,
 // and returns the ID of the created Todo
-func (usrv *UserService) Create(t todoapp.Todo) (string, error) {
+func (usrv *todoService) Create(t todoapp.Todo) (string, error) {
 	usrv.mtx.Lock()
 	defer usrv.mtx.Unlock()
 
-	newUniqueID := usrv.UniqueIDGenerator()
+	newUniqueID := usrv.uIDGen.GenerateUniqueID()
 
-	usrv.Todos[newUniqueID] = t
+	usrv.todos[newUniqueID] = t
 	return newUniqueID, nil
 }
 
 //Delete removes the Todo associated to the ID if any; otherwise it returns an error
-func (usrv *UserService) Delete(ID string) error {
+func (usrv *todoService) Delete(ID string) error {
 	usrv.mtx.Lock()
 	defer usrv.mtx.Unlock()
 
-	if _, todoIsPresent := usrv.Todos[ID]; !todoIsPresent {
+	if _, todoIsPresent := usrv.todos[ID]; !todoIsPresent {
 		return &errTodoNotFound{ID}
 	}
 
-	delete(usrv.Todos, ID)
+	delete(usrv.todos, ID)
 	return nil
 }
 
 // Update updates the Todo associated to an ID; if upsert is set, the association is created
 // if does NOT already exist
-func (usrv *UserService) Update(ID string, todo todoapp.Todo, upsert bool) error {
+func (usrv *todoService) Update(ID string, todo todoapp.Todo, upsert bool) error {
 	usrv.mtx.Lock()
 	defer usrv.mtx.Unlock()
 
 	if upsert {
-		usrv.Todos[ID] = todo
+		usrv.todos[ID] = todo
 		return nil
 	}
 
-	if _, todoAlreadyPresent := usrv.Todos[ID]; !todoAlreadyPresent {
+	if _, todoAlreadyPresent := usrv.todos[ID]; !todoAlreadyPresent {
 		return &errTodoNotFound{ID}
 	}
 
-	usrv.Todos[ID] = todo
+	usrv.todos[ID] = todo
 	return nil
 }
